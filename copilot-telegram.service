@@ -1,0 +1,15 @@
+[Unit]
+Description=Copilot Telegram Daemon - polls Telegram and saves messages to inbox
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/bin/telegram-daemon
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:%h/.copilot-telegram-daemon.log
+StandardError=append:%h/.copilot-telegram-daemon.log
+
+[Install]
+WantedBy=default.target

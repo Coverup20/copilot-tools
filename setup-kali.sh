@@ -1,27 +1,41 @@
 #!/bin/bash
 # setup-kali.sh - Install copilot-tools on Kali WSL
-# Installs notify.py as ~/bin/notify (accessible from anywhere)
+# Installs notify, get-chat-id, telegram-daemon, check-inbox in ~/bin
+# Sets up systemd user service for the daemon
 
 set -e
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 BIN_DIR="$HOME/bin"
+SYSTEMD_DIR="$HOME/.config/systemd/user"
 
 echo "=== Copilot Tools - Kali Setup ==="
 echo ""
 
-# Create ~/bin if not exists
+# Create dirs
 mkdir -p "$BIN_DIR"
+mkdir -p "$SYSTEMD_DIR"
 
-# Install notify.py
+# Install binaries
 cp "$REPO_DIR/notify.py" "$BIN_DIR/notify"
 chmod +x "$BIN_DIR/notify"
 echo "Installed: $BIN_DIR/notify"
 
-# Install get-chat-id.py
 cp "$REPO_DIR/get-chat-id.py" "$BIN_DIR/get-chat-id"
 chmod +x "$BIN_DIR/get-chat-id"
 echo "Installed: $BIN_DIR/get-chat-id"
+
+cp "$REPO_DIR/telegram-daemon.py" "$BIN_DIR/telegram-daemon"
+chmod +x "$BIN_DIR/telegram-daemon"
+echo "Installed: $BIN_DIR/telegram-daemon"
+
+cp "$REPO_DIR/check-inbox.py" "$BIN_DIR/check-inbox"
+chmod +x "$BIN_DIR/check-inbox"
+echo "Installed: $BIN_DIR/check-inbox"
+
+# Install systemd user service
+cp "$REPO_DIR/copilot-telegram.service" "$SYSTEMD_DIR/copilot-telegram.service"
+echo "Installed: $SYSTEMD_DIR/copilot-telegram.service"
 
 # Ensure ~/bin is in PATH
 if ! echo "$PATH" | grep -q "$HOME/bin"; then
@@ -42,14 +56,32 @@ if [ ! -f "$HOME/.copilot-telegram" ]; then
     echo "  2. Send /newbot → follow instructions → copy the TOKEN"
     echo "  3. Send any message to your new bot"
     echo "  4. Run:"
-    echo "       python3 $BIN_DIR/get-chat-id --token YOUR_TOKEN_HERE"
+    echo "       get-chat-id --token YOUR_TOKEN_HERE"
     echo "     This saves credentials to ~/.copilot-telegram automatically."
     echo ""
 else
     echo "Credentials found at ~/.copilot-telegram"
     echo ""
+
+    # Enable and start the daemon
+    if command -v systemctl &>/dev/null && systemctl --user status &>/dev/null 2>&1; then
+        systemctl --user daemon-reload
+        systemctl --user enable copilot-telegram.service
+        systemctl --user restart copilot-telegram.service
+        echo "Daemon enabled and started via systemd."
+        echo "Status: systemctl --user status copilot-telegram"
+    else
+        echo "systemd not available (WSL1?). Start daemon manually:"
+        echo "  nohup telegram-daemon &"
+        echo "  # or add to ~/.zshrc:"
+        echo "  # (pgrep -f telegram-daemon || nohup telegram-daemon >> ~/.copilot-telegram-daemon.log 2>&1 &)"
+    fi
+
+    echo ""
     echo "Test with:"
     echo "  notify 'Hello from Copilot!'"
+    echo "  check-inbox"
 fi
 
+echo ""
 echo "=== Setup complete ==="
