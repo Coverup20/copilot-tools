@@ -73,15 +73,6 @@ def clean_output(text):
     # Remove ANSI escape codes
     ansi = re.compile(r'\x1b\[[0-9;]*[mGKHF]|\x1b\].*?\x07|\x1b[@-Z\\-_]')
     text = ansi.sub('', text)
-    # Remove Copilot CLI session summary lines
-    lines = text.splitlines()
-    filtered = []
-    for line in lines:
-        stripped = line.strip()
-        if re.match(r'^(Changes|Requests|Tokens|Continuing autonomously|\u25cf Continuing)', stripped):
-            continue
-        filtered.append(line)
-    text = '\n'.join(filtered)
     # Collapse excessive blank lines
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
