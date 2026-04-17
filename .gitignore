@@ -1,0 +1,9 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Credentials - NEVER commit!
+.copilot-telegram
+*.env
+.env*
