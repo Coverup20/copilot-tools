@@ -33,9 +33,16 @@ cp "$REPO_DIR/check-inbox.py" "$BIN_DIR/check-inbox"
 chmod +x "$BIN_DIR/check-inbox"
 echo "Installed: $BIN_DIR/check-inbox"
 
-# Install systemd user service
+cp "$REPO_DIR/inbox-worker.py" "$BIN_DIR/inbox-worker"
+chmod +x "$BIN_DIR/inbox-worker"
+echo "Installed: $BIN_DIR/inbox-worker"
+
+# Install systemd user services
 cp "$REPO_DIR/copilot-telegram.service" "$SYSTEMD_DIR/copilot-telegram.service"
 echo "Installed: $SYSTEMD_DIR/copilot-telegram.service"
+
+cp "$REPO_DIR/copilot-worker.service" "$SYSTEMD_DIR/copilot-worker.service"
+echo "Installed: $SYSTEMD_DIR/copilot-worker.service"
 
 # Ensure ~/bin is in PATH
 if ! echo "$PATH" | grep -q "$HOME/bin"; then
@@ -66,21 +73,22 @@ else
     # Enable and start the daemon
     if command -v systemctl &>/dev/null && systemctl --user status &>/dev/null 2>&1; then
         systemctl --user daemon-reload
-        systemctl --user enable copilot-telegram.service
-        systemctl --user restart copilot-telegram.service
-        echo "Daemon enabled and started via systemd."
-        echo "Status: systemctl --user status copilot-telegram"
+        systemctl --user enable copilot-telegram.service copilot-worker.service
+        systemctl --user restart copilot-telegram.service copilot-worker.service
+        echo "Services enabled and started via systemd."
+        echo "Status: systemctl --user status copilot-telegram copilot-worker"
     else
-        echo "systemd not available (WSL1?). Start daemon manually:"
+        echo "systemd not available (WSL1?). Start manually:"
         echo "  nohup telegram-daemon &"
-        echo "  # or add to ~/.zshrc:"
-        echo "  # (pgrep -f telegram-daemon || nohup telegram-daemon >> ~/.copilot-telegram-daemon.log 2>&1 &)"
+        echo "  nohup inbox-worker &"
     fi
 
     echo ""
     echo "Test with:"
     echo "  notify 'Hello from Copilot!'"
     echo "  check-inbox"
+    echo ""
+    echo "Sessions (past Telegram interactions) in: ~/.copilot-sessions/"
 fi
 
 echo ""

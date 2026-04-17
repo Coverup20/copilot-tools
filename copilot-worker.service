@@ -1,0 +1,15 @@
+[Unit]
+Description=Copilot Inbox Worker - processes Telegram messages via Copilot CLI
+After=network-online.target copilot-telegram.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/bin/inbox-worker
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:%h/.copilot-worker.log
+StandardError=append:%h/.copilot-worker.log
+
+[Install]
+WantedBy=default.target
