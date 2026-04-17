@@ -23,7 +23,7 @@ CREDENTIALS_FILE = os.path.expanduser("~/.copilot-telegram")
 INBOX_FILE = os.path.expanduser("~/.copilot-inbox")
 OFFSET_FILE = os.path.expanduser("~/.copilot-telegram-offset")
 LOG_FILE = os.path.expanduser("~/.copilot-telegram-daemon.log")
-POLL_TIMEOUT = 30  # long polling seconds
+POLL_TIMEOUT = 10  # long polling seconds
 MAX_INBOX = 100    # max messages to keep in inbox
 
 
