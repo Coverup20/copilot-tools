@@ -18,14 +18,35 @@ import signal
 import re
 from datetime import datetime
 
-VERSION = "1.0.0"
+VERSION = "1.2.0"
 INBOX_FILE = os.path.expanduser("~/.copilot-inbox")
 SESSIONS_DIR = os.path.expanduser("~/.copilot-sessions")
 LOG_FILE = os.path.expanduser("~/.copilot-worker.log")
-COPILOT_BIN = os.path.expanduser("~/.npm-global/bin/copilot")
-NOTIFY_BIN = os.path.expanduser("~/bin/notify")
+COPILOT_BIN = "/usr/local/bin/copilot"
+NOTIFY_BIN = "/root/bin/notify"
 POLL_INTERVAL = 5   # seconds between inbox checks
 COPILOT_TIMEOUT = 300  # max seconds to wait for copilot response
+
+# System context injected before every user prompt
+SYSTEM_CONTEXT = """
+CONTEXT (read before answering):
+- You are running as root on checkmk-z1-00 (192.168.10.128), a Linux host.
+- Working directory: /opt/checkmk-tools (the checkmk-tools repository).
+- SSH access is available WITHOUT passphrase using these aliases (defined in ~/.ssh/config):
+    srv-monitoring-sp  -> 45.33.235.86:2333 (root, CheckMK production SP, OMD site: monitoring)
+    srv-monitoring-us  -> 195.223.159.27:2333 (root, CheckMK production US, OMD site: monitoring)
+    checkmk-vps-01     -> monitor.nethlab.it (root, CheckMK production VPS)
+    checkmk-vps-02     -> monitor01.nethlab.it (root, CheckMK staging VPS)
+- SERVER GROUPS (use these definitions always):
+    "tutti i server checkmk" / "all checkmk servers"      -> srv-monitoring-sp, srv-monitoring-us, checkmk-vps-01, checkmk-vps-02
+    "server checkmk dei clienti" / "client checkmk"       -> srv-monitoring-sp, srv-monitoring-us
+    "server checkmk vps"                                  -> checkmk-vps-01, checkmk-vps-02
+- OMD commands must be run as site user: ssh <host> 'su - monitoring -c "omd status"'
+- ALWAYS actually SSH to the servers and collect real data. Do NOT just produce command lists.
+- Use 'ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new <alias> <cmd>' for all SSH calls.
+
+USER REQUEST:
+""".strip()
 
 
 ## Utils
@@ -106,15 +127,23 @@ def save_session(prompt, output, duration):
 
 
 def run_copilot(prompt):
+    full_prompt = f"{SYSTEM_CONTEXT}\n{prompt}"
     log.info(f"Running copilot for: {prompt[:80]}")
     start = time.time()
     try:
+        gh_token = os.environ.get("GH_TOKEN", "")
         result = subprocess.run(
-            [COPILOT_BIN, "-p", prompt, "--allow-all", "--autopilot"],
+            [COPILOT_BIN, "-p", full_prompt, "--allow-all", "--autopilot", "--no-ask-user"],
             capture_output=True,
             text=True,
             timeout=COPILOT_TIMEOUT,
-            env={**os.environ, "TERM": "dumb"},
+            env={
+                **os.environ,
+                "TERM": "dumb",
+                "GH_TOKEN": gh_token,
+                "GITHUB_TOKEN": gh_token,
+                "COPILOT_GITHUB_TOKEN": gh_token,
+            },
         )
         duration = time.time() - start
         raw = result.stdout + ("\n" + result.stderr if result.stderr.strip() else "")
