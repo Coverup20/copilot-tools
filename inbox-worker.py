@@ -25,7 +25,7 @@ LOG_FILE = os.path.expanduser("~/.copilot-worker.log")
 COPILOT_BIN = "/usr/local/bin/copilot"
 NOTIFY_BIN = "/root/bin/notify"
 POLL_INTERVAL = 5   # seconds between inbox checks
-COPILOT_TIMEOUT = 300  # max seconds to wait for copilot response
+COPILOT_TIMEOUT = 600  # max seconds to wait for copilot response
 
 # System context injected before every user prompt
 SYSTEM_CONTEXT = """
