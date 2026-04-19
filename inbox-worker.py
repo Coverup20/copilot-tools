@@ -18,7 +18,7 @@ import signal
 import re
 from datetime import datetime
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 INBOX_FILE = os.path.expanduser("~/.copilot-inbox")
 SESSIONS_DIR = os.path.expanduser("~/.copilot-sessions")
 LOG_FILE = os.path.expanduser("~/.copilot-worker.log")
@@ -101,9 +101,14 @@ def clean_output(text):
     ansi = re.compile(r'\x1b\[[0-9;]*[mGKHF]|\x1b\].*?\x07|\x1b[@-Z\\-_]')
     text = ansi.sub('', text)
     # Remove XML tool call tags leaked from copilot agent (e.g. <taskcomplete>, <parameter ...>)
-    text = re.sub(r'<task_?complete[^>]*>.*?</task_?complete>', '', text, flags=re.DOTALL | re.IGNORECASE)
-    text = re.sub(r'<parameter[^>]*>.*?</parameter>', '', text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r'<task_?complete[^>]*>.*?</task_?complete\s*>', '', text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r'<parameter[^>]*>.*?</parameter\s*>', '', text, flags=re.DOTALL | re.IGNORECASE)
     text = re.sub(r'<[a-zA-Z_][a-zA-Z0-9_]*\s*/>', '', text)
+    # Remove VS Code Copilot chat session footer lines
+    text = re.sub(r'^[●•]\s*Continuing autonomously.*$', '', text, flags=re.MULTILINE | re.IGNORECASE)
+    text = re.sub(r'^Changes\s+\+\d+\s+-\d+.*$', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^Requests\s+\d+\s+Premium.*$', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^Tokens\s+[↑↓\d.,k\s]+.*$', '', text, flags=re.MULTILINE)
     # Collapse excessive blank lines
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
