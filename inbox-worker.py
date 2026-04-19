@@ -81,11 +81,17 @@ def save_inbox(messages):
 
 def notify(text):
     try:
-        subprocess.run(
+        r = subprocess.run(
             [NOTIFY_BIN, text],
-            timeout=15,
+            timeout=30,
             check=False,
+            capture_output=True,
+            text=True,
         )
+        if r.returncode == 0:
+            log.info("Notify sent OK")
+        else:
+            log.warning(f"notify failed (exit {r.returncode}): {r.stderr.strip()[:300]}")
     except Exception as e:
         log.warning(f"notify failed: {e}")
 
