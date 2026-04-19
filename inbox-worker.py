@@ -18,7 +18,7 @@ import signal
 import re
 from datetime import datetime
 
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 INBOX_FILE = os.path.expanduser("~/.copilot-inbox")
 SESSIONS_DIR = os.path.expanduser("~/.copilot-sessions")
 LOG_FILE = os.path.expanduser("~/.copilot-worker.log")
@@ -147,8 +147,7 @@ def run_copilot(prompt):
     try:
         gh_token = os.environ.get("GH_TOKEN", "")
         proc = subprocess.Popen(
-            [COPILOT_BIN, "-p", full_prompt, "--allow-all", "--autopilot", "--no-ask-user",
-             "--excluded-tools=task_complete"],
+            [COPILOT_BIN, "-p", full_prompt, "--allow-all", "--autopilot", "--no-ask-user"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
