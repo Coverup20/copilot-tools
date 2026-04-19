@@ -14,8 +14,9 @@ import urllib.request
 import urllib.parse
 import json
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 CREDENTIALS_FILE = os.path.expanduser("~/.copilot-telegram")
+MAX_MSG_LEN = 4000  # Telegram limit is 4096, stay safe
 
 
 ## Utils
@@ -65,6 +66,28 @@ def send_message(token, chat_id, text):
         return False
 
 
+def send_long_message(token, chat_id, text):
+    if len(text) <= MAX_MSG_LEN:
+        return send_message(token, chat_id, text)
+    # Split into chunks at newline boundaries
+    chunks = []
+    while text:
+        if len(text) <= MAX_MSG_LEN:
+            chunks.append(text)
+            break
+        split_at = text.rfind('\n', 0, MAX_MSG_LEN)
+        if split_at == -1:
+            split_at = MAX_MSG_LEN
+        chunks.append(text[:split_at])
+        text = text[split_at:].lstrip('\n')
+    ok = True
+    for i, chunk in enumerate(chunks):
+        if len(chunks) > 1:
+            chunk = f"_(parte {i+1}/{len(chunks)})_\n\n{chunk}"
+        ok = send_message(token, chat_id, chunk) and ok
+    return ok
+
+
 ## Main
 
 def main():
@@ -90,7 +113,7 @@ def main():
         text = f"*{args.title}*\n\n{text}"
 
     token, chat_id = load_credentials()
-    ok = send_message(token, chat_id, text)
+    ok = send_long_message(token, chat_id, text)
     if ok:
         print("Sent.")
     else:
