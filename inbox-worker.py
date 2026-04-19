@@ -18,7 +18,7 @@ import signal
 import re
 from datetime import datetime
 
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 INBOX_FILE = os.path.expanduser("~/.copilot-inbox")
 SESSIONS_DIR = os.path.expanduser("~/.copilot-sessions")
 LOG_FILE = os.path.expanduser("~/.copilot-worker.log")
@@ -44,6 +44,8 @@ CONTEXT (read before answering):
 - OMD commands must be run as site user: ssh <host> 'su - monitoring -c "omd status"'
 - ALWAYS actually SSH to the servers and collect real data. Do NOT just produce command lists.
 - Use 'ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new <alias> <cmd>' for all SSH calls.
+- For apt/dpkg commands on THIS host use: DEBIAN_FRONTEND=noninteractive apt-get -y <cmd>
+- For apt/dpkg commands via SSH use: ssh <host> 'DEBIAN_FRONTEND=noninteractive apt-get -y <cmd>'
 
 USER REQUEST:
 """.strip()
