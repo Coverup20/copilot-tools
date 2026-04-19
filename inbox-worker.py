@@ -18,7 +18,7 @@ import signal
 import re
 from datetime import datetime
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 INBOX_FILE = os.path.expanduser("~/.copilot-inbox")
 SESSIONS_DIR = os.path.expanduser("~/.copilot-sessions")
 LOG_FILE = os.path.expanduser("~/.copilot-worker.log")
@@ -140,14 +140,15 @@ def run_copilot(prompt):
     full_prompt = f"{SYSTEM_CONTEXT}\n{prompt}"
     log.info(f"Running copilot for: {prompt[:80]}")
     start = time.time()
+    lines = []
     try:
         gh_token = os.environ.get("GH_TOKEN", "")
-        result = subprocess.run(
+        proc = subprocess.Popen(
             [COPILOT_BIN, "-p", full_prompt, "--allow-all", "--autopilot", "--no-ask-user",
              "--excluded-tools=task_complete"],
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
-            timeout=COPILOT_TIMEOUT,
             env={
                 **os.environ,
                 "TERM": "dumb",
@@ -156,15 +157,35 @@ def run_copilot(prompt):
                 "COPILOT_GITHUB_TOKEN": gh_token,
             },
         )
+
+        deadline = start + COPILOT_TIMEOUT
+        for line in proc.stdout:
+            if time.time() > deadline:
+                proc.kill()
+                proc.stdout.close()
+                proc.wait()
+                duration = time.time() - start
+                log.warning(f"Copilot timed out after {duration:.0f}s")
+                raw = "".join(lines)
+                return clean_output(raw) + f"\n\nTimeout after {duration:.0f}s", duration, -1
+            lines.append(line)
+            stripped = line.rstrip()
+            # Log tool invocations (lines starting with ● or containing ─)
+            if stripped.lstrip().startswith(("●", "○", "✓", "✗", "⚠")):
+                log.info(f"[TOOL] {stripped.lstrip()}")
+            # Log command lines inside tool blocks (│ prefix)
+            elif "│" in stripped:
+                cmd_part = stripped.split("│", 1)[-1].strip()
+                if cmd_part:
+                    log.info(f"[CMD]  {cmd_part}")
+
+        proc.stdout.close()
+        rc = proc.wait()
         duration = time.time() - start
-        raw = result.stdout + ("\n" + result.stderr if result.stderr.strip() else "")
+        raw = "".join(lines)
         output = clean_output(raw)
-        log.info(f"Copilot finished in {duration:.1f}s (exit {result.returncode})")
-        return output, duration, result.returncode
-    except subprocess.TimeoutExpired:
-        duration = time.time() - start
-        log.warning(f"Copilot timed out after {duration:.0f}s")
-        return f"Timeout after {duration:.0f}s", duration, -1
+        log.info(f"Copilot finished in {duration:.1f}s (exit {rc})")
+        return output, duration, rc
     except FileNotFoundError:
         return f"ERROR: Copilot CLI not found at {COPILOT_BIN}", 0, -1
     except Exception as e:
