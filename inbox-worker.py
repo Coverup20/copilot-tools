@@ -18,10 +18,11 @@ import signal
 import re
 from datetime import datetime
 
-VERSION = "1.3.1"
+VERSION = "1.4.0"
 INBOX_FILE = os.path.expanduser("~/.copilot-inbox")
 SESSIONS_DIR = os.path.expanduser("~/.copilot-sessions")
 LOG_FILE = os.path.expanduser("~/.copilot-worker.log")
+ACTIVITY_FILE = os.path.expanduser("~/.copilot-activity")  # live output: tail -f ~/.copilot-activity
 COPILOT_BIN = "/usr/local/bin/copilot"
 NOTIFY_BIN = "/root/bin/notify"
 POLL_INTERVAL = 5   # seconds between inbox checks
@@ -160,9 +161,16 @@ def run_copilot(prompt):
             },
         )
 
+        # Open activity file for live streaming (tail -f ~/.copilot-activity)
+        act = open(ACTIVITY_FILE, "w", buffering=1)
+        act.write(f"=== {datetime.now().strftime('%H:%M:%S')} | {prompt[:80]} ===\n")
+        os.chmod(ACTIVITY_FILE, 0o600)
+
         deadline = start + COPILOT_TIMEOUT
         for line in proc.stdout:
             if time.time() > deadline:
+                act.write("\n[TIMEOUT]\n")
+                act.close()
                 proc.kill()
                 proc.stdout.close()
                 proc.wait()
@@ -171,6 +179,7 @@ def run_copilot(prompt):
                 raw = "".join(lines)
                 return clean_output(raw) + f"\n\nTimeout after {duration:.0f}s", duration, -1
             lines.append(line)
+            act.write(line)
             stripped = line.rstrip()
             # Log tool invocations (lines starting with ● or containing ─)
             if stripped.lstrip().startswith(("●", "○", "✓", "✗", "⚠")):
@@ -180,6 +189,9 @@ def run_copilot(prompt):
                 cmd_part = stripped.split("│", 1)[-1].strip()
                 if cmd_part:
                     log.info(f"[CMD]  {cmd_part}")
+
+        act.write(f"\n=== DONE ({time.time()-start:.0f}s) ===\n")
+        act.close()
 
         proc.stdout.close()
         rc = proc.wait()
