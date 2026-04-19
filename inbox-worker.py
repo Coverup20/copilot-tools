@@ -18,7 +18,7 @@ import signal
 import re
 from datetime import datetime
 
-VERSION = "1.4.1"
+VERSION = "1.4.2"
 INBOX_FILE = os.path.expanduser("~/.copilot-inbox")
 SESSIONS_DIR = os.path.expanduser("~/.copilot-sessions")
 LOG_FILE = os.path.expanduser("~/.copilot-worker.log")
@@ -33,6 +33,9 @@ SYSTEM_CONTEXT = """
 CONTEXT (read before answering):
 - You are running as root on checkmk-z1-00 (192.168.10.128), a Linux host.
 - Working directory: /opt/checkmk-tools (the checkmk-tools repository).
+- BEFORE doing anything, read these files for full context:
+    1. /opt/checkmk-tools/REPOSITORY_INDEX.md           -> full repo structure and script index
+    2. /opt/checkmk-tools/copilot/session-start-prompt.md -> rules, memory files, key facts
 - SSH access is available WITHOUT passphrase using these aliases (defined in ~/.ssh/config):
     srv-monitoring-sp  -> 45.33.235.86:2333 (root, CheckMK production SP, OMD site: monitoring)
     srv-monitoring-us  -> 195.223.159.27:2333 (root, CheckMK production US, OMD site: monitoring)
@@ -43,6 +46,8 @@ CONTEXT (read before answering):
     "server checkmk dei clienti" / "client checkmk"       -> srv-monitoring-sp, srv-monitoring-us
     "server checkmk vps"                                  -> checkmk-vps-01, checkmk-vps-02
 - OMD commands must be run as site user: ssh <host> 'su - monitoring -c "omd status"'
+- CheckMK backup config is under the SITE USER home: /omd/sites/monitoring/etc/check_mk/backup.mk
+  rclone config is at: /opt/omd/sites/monitoring/.config/rclone/rclone.conf (NOT /root/.config/)
 - ALWAYS actually SSH to the servers and collect real data. Do NOT just produce command lists.
 - Use 'ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new <alias> <cmd>' for all SSH calls.
 - For apt/dpkg commands on THIS host use: DEBIAN_FRONTEND=noninteractive apt-get -y <cmd>
