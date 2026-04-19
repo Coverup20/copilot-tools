@@ -143,7 +143,8 @@ def run_copilot(prompt):
     try:
         gh_token = os.environ.get("GH_TOKEN", "")
         result = subprocess.run(
-            [COPILOT_BIN, "-p", full_prompt, "--allow-all", "--autopilot", "--no-ask-user"],
+            [COPILOT_BIN, "-p", full_prompt, "--allow-all", "--autopilot", "--no-ask-user",
+             "--excluded-tools=task_complete"],
             capture_output=True,
             text=True,
             timeout=COPILOT_TIMEOUT,
