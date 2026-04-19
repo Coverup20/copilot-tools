@@ -100,6 +100,10 @@ def clean_output(text):
     # Remove ANSI escape codes
     ansi = re.compile(r'\x1b\[[0-9;]*[mGKHF]|\x1b\].*?\x07|\x1b[@-Z\\-_]')
     text = ansi.sub('', text)
+    # Remove XML tool call tags leaked from copilot agent (e.g. <taskcomplete>, <parameter ...>)
+    text = re.sub(r'<task_?complete[^>]*>.*?</task_?complete>', '', text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r'<parameter[^>]*>.*?</parameter>', '', text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r'<[a-zA-Z_][a-zA-Z0-9_]*\s*/>', '', text)
     # Collapse excessive blank lines
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
